@@ -7,6 +7,7 @@ import com.newzen.security.config.auth.MyUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import javax.annotation.Resource;
 
 @Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true) //方法级别的权限控制，默认是关闭的
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Resource
@@ -77,12 +79,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 //.defaultSuccessUrl("/index")
                 .successHandler(myAuthenticationSuccessHandler)
                 .failureHandler(myAuthenticationFailHandler)
-                .and()
+                    .and()
                 .authorizeRequests()
                 .antMatchers("/login.html", "/login").permitAll()
                 .antMatchers("/index").authenticated()  //首页登录就可以访问
                 .anyRequest().access("@rbacService.hasPermission(request, authentication)")
-                .and().sessionManagement()
+                    .and()
+                .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .invalidSessionUrl("/login.html")
                 .sessionFixation().migrateSession()
