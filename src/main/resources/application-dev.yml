@@ -1,0 +1,27 @@
+server:
+  port: 8888
+  servlet:
+    session:
+      timeout: 10s
+      cookie:
+        http-only: true
+        secure: false
+spring:
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/security?useUnicode=true&characterEncoding=utf-8&useSSL=false
+    username: root
+    password: thinker
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  freemarker:
+    cache: false
+    suffix: .html
+    charset: UTF-8
+    template-loader-path: classpath:/templates/
+  security:
+    loginType: JSON
+
+logging:
+  config: classpath:log4j2-dev.xml
