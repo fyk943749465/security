@@ -7,6 +7,7 @@ import com.newzen.security.config.exception.CustomExceptionType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.security.web.authentication.session.SessionAuthenticationException;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
@@ -26,12 +27,18 @@ public class MyAuthenticationFailHandler extends SimpleUrlAuthenticationFailureH
     public void onAuthenticationFailure(HttpServletRequest request,
                                         HttpServletResponse response, AuthenticationException exception)
             throws IOException, ServletException {
+
+        String errorMsg = "username or password error!";
+        if (exception instanceof SessionAuthenticationException) {
+            errorMsg = exception.getMessage();
+        }
+
         if (loginType.equalsIgnoreCase("JSON")) {
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(
                     objectMapper.writeValueAsString(
                             AjaxResponse.error(
-                                    new CustomException(CustomExceptionType.USER_INPUT_ERROR, "username or password error!")
+                                    new CustomException(CustomExceptionType.USER_INPUT_ERROR, errorMsg)
                             )));
         } else {
             super.onAuthenticationFailure(request, response, exception);

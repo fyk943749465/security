@@ -35,14 +35,14 @@ public class BizpageController {
     @GetMapping("/biz1")
     public String updateOrder() {
 //        methodELService.findAll();
-//        methodELService.findOne();
+        methodELService.findOne();
 
 //      List<Integer> ids = new ArrayList<>();
 //      ids.add(1);
 //      ids.add(2);
 //      methodELService.delete(ids,null);
 
-      List<PersonDemo> pds = methodELService.findAllPD();
+//      List<PersonDemo> pds = methodELService.findAllPD();
         return "biz1";
     }
 

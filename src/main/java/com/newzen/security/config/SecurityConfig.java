@@ -1,9 +1,7 @@
 package com.newzen.security.config;
 
-import com.newzen.security.config.auth.MyAuthenticationFailHandler;
-import com.newzen.security.config.auth.MyAuthenticationSuccessHandler;
-import com.newzen.security.config.auth.MyExpiredSessionStrategy;
-import com.newzen.security.config.auth.MyUserDetailsService;
+import com.newzen.security.config.auth.*;
+import com.newzen.security.config.auth.imagecode.CaptchaCodeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -14,8 +12,12 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 
 import javax.annotation.Resource;
+import javax.sql.DataSource;
 
 @Configuration
 @EnableGlobalMethodSecurity(prePostEnabled = true) //方法级别的权限控制，默认是关闭的
@@ -29,6 +31,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Resource
     private MyUserDetailsService myUserDetailsService;
+
+    @Resource
+    private DataSource dataSource;
+
+    @Resource
+    private MyLogoutSuccessHandler myLogoutSuccessHandler;
+
+    @Resource
+    private CaptchaCodeFilter captchaCodeFilter;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -70,7 +81,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //                    .expiredSessionStrategy(new MyExpiredSessionStrategy()); // session失效提醒
 
         // 动态加载数据库中的数据
-        http.csrf().disable()
+        http.addFilterBefore(captchaCodeFilter, UsernamePasswordAuthenticationFilter.class)
+                .logout()
+                .logoutUrl("/sigout")// 个性化退出登录配置,默认是logout
+                // .logoutSuccessUrl("/login.html") //退出登录后个性化配置的页面, 默认到login.html
+                .deleteCookies("JSESSIONID")
+                .logoutSuccessHandler(myLogoutSuccessHandler)
+                .and()
+                .rememberMe()
+                .rememberMeParameter("remember-me-new") //传递参数的名称 默认remember-me
+                .rememberMeCookieName("remember-me-cookie") //cookie的名称, 默认remember-me
+                .tokenValiditySeconds( 2 * 24 * 60 * 60) // token过期时间
+                .tokenRepository(persistentTokenRepository()) //将token持久化到数据库
+                .and()
+                .csrf().disable()
                 .formLogin()
                 .loginPage("/login.html")
                 .usernameParameter("uname")//默认是 username
@@ -81,7 +105,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .failureHandler(myAuthenticationFailHandler)
                     .and()
                 .authorizeRequests()
-                .antMatchers("/login.html", "/login").permitAll()
+                .antMatchers("/login.html", "/login", "/kaptcha").permitAll()
                 .antMatchers("/index").authenticated()  //首页登录就可以访问
                 .anyRequest().access("@rbacService.hasPermission(request, authentication)")
                     .and()
@@ -123,6 +147,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) {
         web.ignoring().antMatchers("/css/**", "/fonts/**", "/img/**", "/js/**");
+    }
+
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository() {
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+        tokenRepository.setDataSource(dataSource);
+
+        return tokenRepository;
     }
 
 }
